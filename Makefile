@@ -15,13 +15,4 @@ clean:
 	git clean -fxd; \
 	git checkout -- .
 
-build:
-	go build 
-
-generate:
-	go generate
-
-test:
-	go test
-
-.PHONY: submodule_update clean build generate test
+.PHONY: submodule_update clean

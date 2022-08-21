@@ -31,7 +31,22 @@ func (c *TccContext) DeleteContext() {
 	C.tcc_delete(c.State)
 }
 
+/* -------------------- Preprocessor----------------------------------------*/
 
+func (c *TccContext) AddIncludePath(includePath string) error {
+	rc := C.tcc_add_include_path(
+		c.State,
+		(*C.char)(unsafe.Pointer(
+			&([]byte(includePath))[0],
+		)),
+	)
+	if rc == -1 {
+		return ErrTccCouldNotAddIncludePath
+	}
+	return nil
+}
+
+/* -------------------------------------------------------------------------*/
 /* ---------------------- Compiling ----------------------------------------*/
 
 // Adds a file (C file, dll, object, library, ld script).
@@ -59,10 +74,41 @@ func (c *TccContext) CompileString(buf *bytes.Buffer) error {
 }
 
 /* -------------------------------------------------------------------------*/
-/* ---------------------- Compiling ----------------------------------------*/
+/* ---------------------- Linking ------------------------------------------*/
 
+func (c *TccContext) SetOutputMode(mode OutputMode) error {
+	if mode > 4 {
+	   return ErrTccUndefinedOutputMode
+	}
+	rc := C.tcc_set_output_type(c.State, (C.int)(mode))
+	if rc == -1 {
+	   return ErrTccErrorOnOutputModeSet
+	}
+	return nil
+}
 
+func (c *TccContext) AddLibraryPath(libraryPath string) error {
+	rc := C.tcc_add_library_path(
+		c.State,
+		(*C.char)(unsafe.Pointer(
+			&([]byte(libraryPath))[0],
+		)),
+	)
+	if rc == -1 {
+		return ErrTccCouldNotAddLibraryPath
+	}
+	return nil
+}
 
-
-
-
+func (c *TccContext) AddLibrary(library string) error {
+	rc := C.tcc_add_library(
+		c.State,
+		(*C.char)(unsafe.Pointer(
+			&([]byte(library))[0],
+		)),
+	)
+	if rc == -1 {
+		return ErrTccCouldNotAddLibrary
+	}
+	return nil
+}
