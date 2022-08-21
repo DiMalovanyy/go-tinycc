@@ -4,7 +4,7 @@
 
 Go-TinyCC is a small wraper library that allows **Dynamic** runtime C code compiling and linking using Golang.
 
-It used [tinyCC](https://tiny.cc) compiler to compile/link runtime C sources. 
+It used [tinyCC](https://bellard.org/tcc/) compiler to compile/link runtime C sources. 
 So there is some benefits over gcc or clang compilers. 
 > from tinyCC documentation
 
