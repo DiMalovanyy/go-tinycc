@@ -3,9 +3,9 @@ package tinycc
 import "testing"
 
 func TestTccStateCreateDelete(t *testing.T) {
-	tccState, err := NewTccState()
+	tccContext, err := NewTccContext()
 	if err != nil {
 		t.Errorf("Could not create tccState: %v", err)
 	}
-	defer tccState.DeleteState()
+	defer tccContext.DeleteContext()
 }

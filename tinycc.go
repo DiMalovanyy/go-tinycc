@@ -9,17 +9,60 @@ package tinycc
 import (
 	"C"
 )
+import (
+	"bytes"
+	"unsafe"
+)
 
-type TccState struct {
+// Context that describes TCC state
+type TccContext struct {
 	State *C.TCCState
 }
 
-func NewTccState() (*TccState, error) {
-	return &TccState {
+// Creates new Tcc Compilation Context
+func NewTccContext() (*TccContext, error) {
+	return &TccContext {
 		State: C.tcc_new(),
 	}, nil
 }
 
-func (s *TccState) DeleteState() {
-	C.tcc_delete(s.State)
+// Free a Tcc Compilation Context
+func (c *TccContext) DeleteContext() {
+	C.tcc_delete(c.State)
 }
+
+
+/* ---------------------- Compiling ----------------------------------------*/
+
+// Adds a file (C file, dll, object, library, ld script).
+func (c *TccContext) AddFile(filePath string) error {
+	rc := C.tcc_add_file(
+		c.State,
+		(*C.char)(unsafe.Pointer(
+			&([]byte(filePath))[0],
+		)),
+	)
+	if rc == -1 {
+		return ErrTccCouldNotAddFile
+	}
+	return nil
+}
+
+// Compile C code loacted in buf
+func (c *TccContext) CompileString(buf *bytes.Buffer) error {
+	bytes := buf.Bytes()
+	rc := C.tcc_compile_string(c.State, (*C.char)(unsafe.Pointer(&bytes[0])))
+	if rc == -1 {
+		return	ErrTccCouldNotCompileString
+	}
+	return nil
+}
+
+/* -------------------------------------------------------------------------*/
+/* ---------------------- Compiling ----------------------------------------*/
+
+
+
+
+
+
