@@ -5,6 +5,16 @@ import (
 	"testing"
 )
 
+func getTestSourcesDir() string {
+	currdir, _ := os.Getwd()
+	return currdir + "/test/"
+}
+
+func getTestIncludeDir() string {
+	return getTestSourcesDir() + "include/"
+}
+
+// Files
 const (
 	// test0.c
 	// Compiling: YES
@@ -12,17 +22,53 @@ const (
 	// Payload:	  NO
 	// Return:	  SUCCESS
 	// Link:	  NO
-	WorkingEmptySuccess = "test_empty_success.c"
-
-	// test1.c
-	// Compiling: YES
-	// ARGS:	  NO
-	// Payload:   
-	//		print: "Hello go-tinycc\n"
-	// Return:	  SUCESS
-	WorkingPayloadSuccess = "test1.c"
+	WorkingEmptySuccessFile = "test_empty_success.c"
 )
 
+
+// Strings
+const (
+	WorkingEmptyNoArgsSuccessString = `
+		int main(void) {
+			return 0;
+		}
+	`
+	WorkingEmptySuccessString = `
+		int main(int argc, char **argv) {
+			return 0;
+		}`
+	WorkingStandardLibSucessString = `
+		#include <stdlib.h>	
+		#include <unistd.h>
+		int main(int argc, char **argv) {
+			exit(EXIT_SUCCESS);
+		}`
+	WorkingExternalLibSuccessString = `
+		#include <lib0.h>
+		int main(int argc, char **argv) {
+			int var = sum(2, 2);
+			return 0;
+		}`
+	WorkingInternalLibSuccessString = `
+		#include "lib0.h"
+		int main(int argc, char **argv){
+			int var = sum(2, 2);
+			return 0;
+		}`
+	WorkingNoStdSuccessString = `
+		int _start() {
+			return 0;
+		}
+	`
+)
+
+// Libs
+const (
+	LibrarySourceString = `
+		int sum_lib(int a, int b) {
+			return a + b;
+		}`
+)
 
 func TestTccContextCreateDelete(t *testing.T) {
 	tccContext, err := NewTccContext()
@@ -36,11 +82,7 @@ func TestCompileStringBasic(t *testing.T) {
 	tccContext, _ := NewTccContext()
 	defer tccContext.DeleteContext()
 
-	source := `
-		int main(int argc, char **argv) {
-			return 0;
-		}`
-	if err := tccContext.CompileString([]byte(source)); err != nil {
+	if err := tccContext.CompileString([]byte(WorkingEmptySuccessString)); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -48,8 +90,7 @@ func TestCompileStringBasic(t *testing.T) {
 func TestCompileStringFromFile(t *testing.T) {
 	tccContext, _ := NewTccContext()
 	defer tccContext.DeleteContext()
-	currdir, _ := os.Getwd()
-	sourcePath := currdir + "/test/" + WorkingEmptySuccess
+	sourcePath := getTestSourcesDir() + WorkingEmptySuccessFile
 	file, err := os.Open(sourcePath)
 	if err != nil {
 		t.Fatalf("Could not open file: %s. Error: %v", sourcePath, err)
@@ -69,19 +110,40 @@ func TestCompileStringFromFile(t *testing.T) {
 	}
 }
 
-func TestCompileStringExternalLibs(t *testing.T) {
+func TestCompileStringStandartLibs(t *testing.T) {
 	tccContext, _ := NewTccContext()
 	defer tccContext.DeleteContext()
 
-	source := `
-		#include <stdlib.h>	
-		#include <unistd.h>
-		int main(int argc, char **argv) {
-			exit(EXIT_SUCCESS);
-		}`
-	if err := tccContext.CompileString([]byte(source)); err != nil {
+	if err := tccContext.CompileString([]byte(WorkingStandardLibSucessString)); err != nil {
 		t.Fatal(err)
 	}
 }
 
+func TestCompileStringExrternalFileLib(t *testing.T) {
+	tccContext, _ := NewTccContext()
+	defer tccContext.DeleteContext()
 
+	// Note should not compile because the -I<IncludeDir> was not specified
+	if err := tccContext.CompileString([]byte(WorkingExternalLibSuccessString)); err != ErrTccCouldNotCompileString {
+		t.Fatalf("Code should not compile without define headers include directory")
+	}
+
+	if err := tccContext.AddIncludePath(getTestIncludeDir()); err != nil {
+		t.Fatal(err)
+	}
+
+	// Now should compile
+	if err := tccContext.CompileString([]byte(WorkingExternalLibSuccessString)); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestExecutionEmptyString(t *testing.T) {
+	tccContext, _ := NewTccContext()
+	defer tccContext.DeleteContext()
+	tccContext.CompileString([]byte(WorkingEmptyNoArgsSuccessString))
+
+	if rc := tccContext.Run(); rc != 0 {
+		t.Fatalf("Return code differs from 0. Code: %d", rc)
+	}
+}

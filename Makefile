@@ -20,7 +20,7 @@ build:
 		"-X 'github.com/DiMalovanyy/go-tinycc/internal.TccHeaders=$(TCC_INCLUDE_DIR)'"
 
 test:
-	go test -ldflags \
+	go test -v -ldflags \
 		"-X 'github.com/DiMalovanyy/go-tinycc/internal.TccHeaders=$(TCC_INCLUDE_DIR)'"
 
 clean:
