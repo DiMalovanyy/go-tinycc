@@ -5,13 +5,14 @@ package tinycc
 
 // #cgo LDFLAGS: -L${SRCDIR}/lib/tinycc -ltcc -ldl
 // #cgo CFLAGS: -I${SRCDIR}/lib/tinycc
-// #include <tcc.h>
+// #include <libtcc.h>
 import (
 	"C"
 )
 import (
-	"bytes"
 	"unsafe"
+
+	"github.com/DiMalovanyy/go-tinycc/internal"
 )
 
 // Context that describes TCC state
@@ -19,16 +20,26 @@ type TccContext struct {
 	State *C.TCCState
 }
 
+
 // Creates new Tcc Compilation Context
 func NewTccContext() (*TccContext, error) {
-	return &TccContext {
+	//TODO: Link and include standard lib sources
+	context := &TccContext {
 		State: C.tcc_new(),
-	}, nil
+	}
+
+	context.AddIncludePath(internal.LocateCHeaders())
+	context.AddIncludePath(internal.TccHeaders)
+	return context, nil
 }
 
 // Free a Tcc Compilation Context
 func (c *TccContext) DeleteContext() {
 	C.tcc_delete(c.State)
+}
+
+func (c *TccContext) SetErrorCallback() {
+	//TODO:
 }
 
 /* -------------------- Preprocessor----------------------------------------*/
@@ -63,15 +74,28 @@ func (c *TccContext) AddFile(filePath string) error {
 	return nil
 }
 
-// Compile C code loacted in buf
-func (c *TccContext) CompileString(buf *bytes.Buffer) error {
-	bytes := buf.Bytes()
-	rc := C.tcc_compile_string(c.State, (*C.char)(unsafe.Pointer(&bytes[0])))
+// Compile C code located in buf
+// NOTE: It only compile string (NOT Run)
+func (c *TccContext) CompileString(buf []byte) error {
+	rc := C.tcc_compile_string(c.State, (*C.char)(unsafe.Pointer(&buf[0])))
 	if rc == -1 {
 		return	ErrTccCouldNotCompileString
 	}
 	return nil
 }
+
+// Set option as from command line
+func (c *TccContext) SetOption(option string) {
+	//TODO:
+}
+
+// Set options as from command line
+func (c *TccContext) SetOptions(options ...string) {
+	for _, option := range options {
+		c.SetOption(option)
+	}
+}
+
 
 /* -------------------------------------------------------------------------*/
 /* ---------------------- Linking ------------------------------------------*/
@@ -110,5 +134,23 @@ func (c *TccContext) AddLibrary(library string) error {
 	if rc == -1 {
 		return ErrTccCouldNotAddLibrary
 	}
+	return nil
+}
+
+/* -------------------------------------------------------------------------*/
+/* ---------------------- Executing ----------------------------------------*/
+
+// Link and run main() and return it value
+// NOTE: Do Not call Relocate() before Run()
+func (c *TccContext) Run(args ...string) int { 
+	return (int)(C.tcc_run(
+		c.State,
+		(C.int)(len(args)),
+		(**C.char)(unsafe.Pointer(&args[0])),
+	))
+}
+
+func (c *TccContext) Relocate() error {
+	//TODO:
 	return nil
 }
