@@ -138,12 +138,5 @@ func TestCompileStringExrternalFileLib(t *testing.T) {
 	}
 }
 
-func TestExecutionEmptyString(t *testing.T) {
-	tccContext, _ := NewTccContext()
-	defer tccContext.DeleteContext()
-	tccContext.CompileString([]byte(WorkingEmptyNoArgsSuccessString))
 
-	if rc := tccContext.Run(); rc != 0 {
-		t.Fatalf("Return code differs from 0. Code: %d", rc)
-	}
-}
+

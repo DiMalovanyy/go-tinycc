@@ -5,7 +5,13 @@ package tinycc
 
 // #cgo LDFLAGS: -L${SRCDIR}/lib/tinycc -ltcc -ldl
 // #cgo CFLAGS: -I${SRCDIR}/lib/tinycc
-// #include <libtcc.h>
+/*
+#include <libtcc.h>
+#include <stdint.h>
+	static void* convert_int_to_addr(uint64_t addr) {
+		return (void*)((uintptr_t)addr);
+	}
+*/
 import (
 	"C"
 )
@@ -57,6 +63,34 @@ func (c *TccContext) AddIncludePath(includePath string) error {
 	return nil
 }
 
+// define preprocessor symbol 'sym'. value can be NULL, sym can be "sym=val"
+func (c *TccContext) DefineSymbol(name string, address uint64) error {
+	C.tcc_define_symbol(
+		c.State,
+		(*C.char)(unsafe.Pointer(
+			&([]byte(name))[0],
+		)),
+		(*C.char)(
+			unsafe.Pointer(C.convert_int_to_addr(
+				(C.uint64_t)(address),
+			)),
+		),
+	)
+	// TODO: Handle C call failed (no Return code)
+	return nil
+}
+
+// undefine preprocess symbol 'sym' 
+func (c *TccContext) UndefineSymbol(name string) error {
+	C.tcc_undefine_symbol(
+		c.State,
+		(*C.char)(unsafe.Pointer(
+			&([]byte(name))[0],
+		)),
+	)
+	// TODO: Handle C call failed (no Return code)
+	return nil
+}
 /* -------------------------------------------------------------------------*/
 /* ---------------------- Compiling ----------------------------------------*/
 
@@ -137,6 +171,23 @@ func (c *TccContext) AddLibrary(library string) error {
 	return nil
 }
 
+// Add a symbol to compiled program (Dynamic add)
+func (c *TccContext) AddSymbol(name string, address uint64) error {
+	rc := C.tcc_add_symbol(
+		c.State,
+		(*C.char)(unsafe.Pointer(
+			&([]byte(name))[0],
+		)),
+		unsafe.Pointer(C.convert_int_to_addr(
+			(C.uint64_t)(address),
+		)),
+	)
+	if rc == -1 {
+		return ErrCouldNotAddSymbol
+	}
+	return nil
+}
+
 /* -------------------------------------------------------------------------*/
 /* ---------------------- Executing ----------------------------------------*/
 
@@ -151,6 +202,8 @@ func (c *TccContext) Run(args ...string) int {
 }
 
 func (c *TccContext) Relocate() error {
-	//TODO:
+	// TODO: !!!
 	return nil
 }
+
+
